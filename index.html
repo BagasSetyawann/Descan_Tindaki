@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>Desa Cantik - Desa Tindaki | Portal Statistik</title>
+    <meta name="description"
+        content="Portal resmi informasi dan statistik Desa Tindaki, Kecamatan Parigi Selatan, Kabupaten Parigi Moutong." />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- ═══════════════════════════════════════════════════════════
+       KONFIGURASI GOOGLE SHEETS  ← CUKUP ISI 1 BARIS INI
+       ─────────────────────────────────────────────────────────
+       CARA MENDAPATKAN SPREADSHEET ID:
+         1. Buka Google Spreadsheet Anda di browser
+         2. Lihat URL-nya, contoh:
+            https://docs.google.com/spreadsheets/d/1aBcDeFgHiJkLmNoPqRsTuVwXyZ/edit
+            ───────────────────────────────────────────── ↑ ini ID-nya ↑
+         3. Copy bagian ID tersebut (antara /d/ dan /edit)
+         4. Tempelkan ke variabel GSHEET_ID di bawah
+
+       NAMA TAB SHEET harus persis sama dengan yang ada di Excel:
+         DEMOGRAFI, FASILITAS_PENDIDIKAN, FASILITAS_KESEHATAN,
+         TINGKAT_PENDIDIKAN, BANTUAN_SOSIAL, INDUSTRI, ORGANISASI
+
+       Jika GSHEET_ID kosong "", data hardcode di bawah akan dipakai.
+  ═══════════════════════════════════════════════════════════════ -->
+    <script>
+        // ▼▼▼ TEMPEL SPREADSHEET ID ANDA DI SINI (hanya 1 baris!) ▼▼▼
+        const GSHEET_ID = "19LcG0Kxzv_NoWw77n3aZGxbGbelrywLvRY8xu-hCIrQ";  // contoh: "1aBcDeFgHiJkLmNoPqRsTuVwXyZ"
+        // ▲▲▲ ─────────────────────────────────────────────────────── ▲▲▲
+
+        // Nama tab sheet (harus sama persis dengan nama tab di Google Sheets)
+        const SHEET_NAMES = {
+            demografi: "DEMOGRAFI",
+            fasPend: "FASILITAS_PENDIDIKAN",
+            fasKes: "FASILITAS_KESEHATAN",
+            pendidikan: "TINGKAT_PENDIDIKAN",
+            bansos: "BANTUAN_SOSIAL",
+            industri: "INDUSTRI",
+            organisasi: "ORGANISASI",
+        };
+
+        // ── DATA FALLBACK (hardcode, aktif jika URL kosong / gagal) ──
+        const FALLBACK = {
+            demografi: [
+                { kategori: "Total Penduduk", jumlah: 3579, satuan: "Jiwa" },
+                { kategori: "Penduduk Laki-laki", jumlah: 1799, satuan: "Jiwa" },
+                { kategori: "Penduduk Perempuan", jumlah: 1780, satuan: "Jiwa" },
+                { kategori: "Jumlah Kepala Keluarga", jumlah: 1203, satuan: "KK" },
+                { kategori: "KK Sektor Pertanian", jumlah: 928, satuan: "KK" },
+            ],
+            fasPend: [
+                { jenis: "TK / RA / BA", jumlah: 3 },
+                { jenis: "SD / Sederajat", jumlah: 2 },
+                { jenis: "SMP / Sederajat", jumlah: 2 },
+            ],
+            fasKes: [
+                { jenis: "Puskesmas Pembantu", jumlah: 1 },
+                { jenis: "Tempat Praktik Bidan", jumlah: 1 },
+                { jenis: "Poskesdes", jumlah: 1 },
+                { jenis: "Apotek", jumlah: 1 },
+            ],
+            pendidikan: [
+                { jenjang: "Tidak Tamat SD", jumlah: 0 },
+                { jenjang: "Tamat SD / Sederajat", jumlah: 432 },
+                { jenjang: "Tamat SMP / Sederajat", jumlah: 164 },
+                { jenjang: "Tamat SMA / Sederajat", jumlah: 297 },
+                { jenjang: "Tamat Akademi / PT", jumlah: 105 },
+            ],
+            bansos: [
+                { program: "BPJS PBI", jumlah: 436 },
+                { program: "Bantuan Pemda Kabupaten", jumlah: 582 },
+                { program: "Bantuan Pemda Provinsi", jumlah: 227 },
+                { program: "Sembako / BPNT", jumlah: 169 },
+                { program: "PKH", jumlah: 141 },
+                { program: "BLT Desa", jumlah: 20 },
+            ],
+            industri: [
+                { jenis: "Industri Makanan", jumlah: 7 },
+                { jenis: "Alat Rumah Tangga", jumlah: 5 },
+                { jenis: "Material Bahan Bangunan", jumlah: 3 },
+                { jenis: "Rumah Makan & Restoran", jumlah: 3 },
+                { jenis: "Industri Alat Pertanian", jumlah: 2 },
+            ],
+            organisasi: [
+                { jabatan: "Kepala Desa", nama: "Syamsul Rizal", kategori: "Pimpinan" },
+                { jabatan: "Sekretaris Desa", nama: "Moh Yandi, S.Sos", kategori: "Sekretariat" },
+                { jabatan: "Kaur Perencanaan", nama: "Sudirman", kategori: "Kaur" },
+                { jabatan: "Kaur Keuangan", nama: "Andri", kategori: "Kaur" },
+                { jabatan: "Kaur Umum & TU", nama: "I Nyoman Slamet", kategori: "Kaur" },
+                { jabatan: "Kasi Pemerintahan", nama: "Jibran. R", kategori: "Kasi" },
+                { jabatan: "Kasi Kesejahteraan", nama: "Asraun", kategori: "Kasi" },
+                { jabatan: "Kasi Pelayanan", nama: "Sri Hardiyanti", kategori: "Kasi" },
+                { jabatan: "Kepala Dusun I", nama: "Abdul Farid", kategori: "Kadus" },
+                { jabatan: "Kepala Dusun II", nama: "Zulkifli", kategori: "Kadus" },
+                { jabatan: "Kepala Dusun III", nama: "H. Sudirman", kategori: "Kadus" },
+                { jabatan: "Kepala Dusun IV", nama: "I Gusti Made Jupranita", kategori: "Kadus" },
+                { jabatan: "Kepala Dusun V", nama: "Yulis Berta Sabudu", kategori: "Kadus" },
+                { jabatan: "Kepala Dusun VI", nama: "Muhammad Ashar", kategori: "Kadus" },
+            ],
+        };
+
+        // ── CSV parser (robust: handle newline dalam kutip, dsb) ────
+        function parseCSV(txt) {
+            const rows = [];
+            let cur = '', inQ = false, fields = [];
+            for (let i = 0; i < txt.length; i++) {
+                const ch = txt[i];
+                if (ch === '"') { inQ = !inQ; }
+                else if (ch === ',' && !inQ) { fields.push(cur.trim()); cur = ''; }
+                else if ((ch === '\n' || ch === '\r') && !inQ) { if (cur || fields.length) { fields.push(cur.trim()); rows.push(fields); fields = []; cur = ''; } }
+                else { cur += ch; }
+            }
+            if (cur || fields.length) { fields.push(cur.trim()); rows.push(fields); }
+            if (rows.length < 2) return [];
+            const headers = rows[0];
+            return rows.slice(1).filter(r => r.some(c => c)).map(r => {
+                const obj = {};
+                headers.forEach((h, i) => {
+                    const v = (r[i] || '').replace(/^"|"$/g, '').trim();
+                    obj[h] = v === '' ? '' : isNaN(v) ? v : Number(v);
+                });
+                return obj;
+            });
+        }
+
+        // ── Fetch sheet via JSONP (bypass CORS & file:// restriction) ─
+        // Google Sheets gviz endpoint mendukung JSONP callback tanpa CORS.
+        // Ini bekerja bahkan saat dibuka dari file:// lokal.
+        function fetchSheetJSONP(sheetKey, fallbackKey) {
+            return new Promise(function (resolve) {
+                if (!GSHEET_ID || GSHEET_ID.trim() === '') {
+                    resolve({ data: FALLBACK[fallbackKey], source: 'local' });
+                    return;
+                }
+                const cbName = '_gs_cb_' + sheetKey + '_' + Date.now();
+                const sheetName = encodeURIComponent(SHEET_NAMES[sheetKey]);
+                const url = 'https://docs.google.com/spreadsheets/d/' + GSHEET_ID.trim()
+                    + '/gviz/tq?tqx=out:json&callback=' + cbName + '&sheet=' + sheetName;
+
+                const timer = setTimeout(function () {
+                    cleanup();
+                    console.warn('[GSheets] Timeout sheet:', sheetKey);
+                    resolve({ data: FALLBACK[fallbackKey], source: 'local', error: 'timeout' });
+                }, 8000);
+
+                function cleanup() {
+                    clearTimeout(timer);
+                    delete window[cbName];
+                    const el = document.getElementById('jsonp-' + cbName);
+                    if (el) el.remove();
+                }
+
+                window[cbName] = function (raw) {
+                    cleanup();
+                    try {
+                        // Google mengembalikan table JSON dengan rows & cols
+                        const cols = raw.table.cols.map(function (c) { return c.label || c.id; });
+                        const rows = (raw.table.rows || []).map(function (r) {
+                            const obj = {};
+                            cols.forEach(function (h, i) {
+                                const cell = r.c && r.c[i];
+                                const v = cell ? (cell.v !== null && cell.v !== undefined ? cell.v : '') : '';
+                                obj[h] = v;
+                            });
+                            return obj;
+                        }).filter(function (r) { return Object.values(r).some(function (v) { return v !== '' && v !== null; }); });
+                        resolve({ data: rows, source: 'sheets' });
+                    } catch (e) {
+                        console.warn('[GSheets] Parse error sheet:', sheetKey, e);
+                        resolve({ data: FALLBACK[fallbackKey], source: 'local', error: e.message });
+                    }
+                };
+
+                const script = document.createElement('script');
+                script.id = 'jsonp-' + cbName;
+                script.src = url;
+                script.onerror = function () {
+                    cleanup();
+                    console.warn('[GSheets] Script load error sheet:', sheetKey);
+                    resolve({ data: FALLBACK[fallbackKey], source: 'local', error: 'script-error' });
+                };
+                document.head.appendChild(script);
+            });
+        }
+
+        // Compat wrapper
+        async function fetchSheet(sheetKey, fallbackKey) {
+            const result = await fetchSheetJSONP(sheetKey, fallbackKey);
+            fetchSheet._lastSource = result.source;
+            fetchSheet._lastError = result.error;
+            return result.data;
+        }
+        fetchSheet._lastSource = 'local';
+    </script>
+
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box
+        }
+
+        html {
+            scroll-behavior: smooth
+        }
+
+        body {
+            background: #f0fdf4;
+            color: #1e293b;
+            font-family: 'Outfit', sans-serif;
+            overflow-x: hidden
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f0fdf4
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #16a34a;
+            border-radius: 99px
+        }
+
+        /* ── Navbar ── */
+        .nav-light {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid #d1fae5;
+            box-shadow: 0 1px 24px rgba(34, 197, 94, 0.06)
+        }
+
+        .nav-link {
+            position: relative;
+            font-weight: 600;
+            color: #475569;
+            transition: color .25s;
+            padding-bottom: 4px
+        }
+
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #16a34a, #4ade80);
+            border-radius: 99px;
+            transition: width .3s
+        }
+
+        .nav-link:hover {
+            color: #16a34a
+        }
+
+        .nav-link:hover::after {
+            width: 100%
+        }
+
+        /* ── Hero ── */
+        .hero-bg {
+            background: linear-gradient(135deg, #052e16 0%, #14532d 35%, #166534 65%, #15803d 100%)
+        }
+
+        .hero-grid {
+            background-image: linear-gradient(rgba(255, 255, 255, .04) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, .04) 1px, transparent 1px);
+            background-size: 50px 50px
+        }
+
+        .text-hero {
+            background: linear-gradient(135deg, #ffffff 0%, #bbf7d0 50%, #4ade80 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text
+        }
+
+        /* ── Sections ── */
+        .section-alt {
+            background: #ffffff
+        }
+
+        .section-main {
+            background: #f8fffe
+        }
+
+        /* ── Cards ── */
+        .card {
+            background: #ffffff;
+            border: 1px solid #d1fae5;
+            border-radius: 20px;
+            transition: all .3s cubic-bezier(.25, .8, .25, 1)
+        }
+
+        .card:hover {
+            box-shadow: 0 12px 40px rgba(34, 197, 94, 0.14);
+            transform: translateY(-4px);
+            border-color: #86efac
+        }
+
+        .card-stat {
+            position: relative;
+            overflow: hidden
+        }
+
+        .card-stat::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            border-radius: 99px 0 0 99px
+        }
+
+        .card-stat.green::before {
+            background: linear-gradient(180deg, #22c55e, #15803d)
+        }
+
+        .card-stat.blue::before {
+            background: linear-gradient(180deg, #3b82f6, #1d4ed8)
+        }
+
+        .card-stat.pink::before {
+            background: linear-gradient(180deg, #ec4899, #be185d)
+        }
+
+        .card-stat.amber::before {
+            background: linear-gradient(180deg, #f59e0b, #b45309)
+        }
+
+        .card-stat.orange::before {
+            background: linear-gradient(180deg, #f97316, #c2410c)
+        }
+
+        /* ── Buttons ── */
+        .btn-primary {
+            background: linear-gradient(135deg, #16a34a, #15803d);
+            color: #fff;
+            font-weight: 700;
+            padding: 14px 32px;
+            border-radius: 99px;
+            transition: all .25s;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px
+        }
+
+        .btn-primary:hover {
+            box-shadow: 0 8px 30px rgba(22, 163, 74, .4);
+            transform: translateY(-2px)
+        }
+
+        .btn-outline {
+            border: 2px solid rgba(255, 255, 255, .4);
+            color: #fff;
+            font-weight: 700;
+            padding: 14px 32px;
+            border-radius: 99px;
+            transition: all .25s;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            backdrop-filter: blur(6px)
+        }
+
+        .btn-outline:hover {
+            background: rgba(255, 255, 255, .15);
+            border-color: rgba(255, 255, 255, .7)
+        }
+
+        /* ── Badge ── */
+        .badge-g {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(34, 197, 94, .1);
+            border: 1px solid rgba(34, 197, 94, .25);
+            color: #15803d;
+            font-size: .72rem;
+            font-weight: 700;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            padding: 5px 16px;
+            border-radius: 99px
+        }
+
+        /* ── Progress bar ── */
+        .prog-bar {
+            height: 8px;
+            border-radius: 99px;
+            background: #d1fae5;
+            overflow: hidden
+        }
+
+        .prog-fill {
+            height: 100%;
+            border-radius: 99px;
+            background: linear-gradient(90deg, #16a34a, #4ade80);
+            width: 0%;
+            transition: width 1.4s cubic-bezier(.25, .8, .25, 1)
+        }
+
+        /* ── Divider ── */
+        .divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #bbf7d0, transparent)
+        }
+
+        /* ── Reveal ── */
+        .reveal {
+            opacity: 0;
+            transform: translateY(32px);
+            transition: opacity .65s ease, transform .65s ease
+        }
+
+        .reveal.visible {
+            opacity: 1;
+            transform: translateY(0)
+        }
+
+        /* ── Pulse ring (Kades) ── */
+        .pulse-ring {
+            position: relative
+        }
+
+        .pulse-ring::before {
+            content: '';
+            position: absolute;
+            inset: -5px;
+            border-radius: 50%;
+            border: 2.5px solid rgba(22, 163, 74, .35);
+            animation: pulseRing 2.5s ease-in-out infinite
+        }
+
+        @keyframes pulseRing {
+
+            0%,
+            100% {
+                opacity: 0;
+                transform: scale(.9)
+            }
+
+            50% {
+                opacity: 1;
+                transform: scale(1.08)
+            }
+        }
+
+        /* ── Icon badge ── */
+        .icon-badge {
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+            transition: transform .25s
+        }
+
+        .card:hover .icon-badge {
+            transform: scale(1.12) rotate(-3deg)
+        }
+
+        /* ── Section accent line ── */
+        .section-accent {
+            display: inline-block;
+            width: 50px;
+            height: 4px;
+            background: linear-gradient(90deg, #16a34a, #4ade80);
+            border-radius: 99px;
+            margin-bottom: 10px
+        }
+
+        /* ── List row ── */
+        .list-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: 1px solid #f0fdf4;
+            transition: background .2s
+        }
+
+        .list-row:hover {
+            background: #f0fdf4
+        }
+
+        /* ── Status indicator ── */
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #22c55e;
+            animation: pulse 2s infinite
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(34, 197, 94, .4)
+            }
+
+            70% {
+                box-shadow: 0 0 0 8px rgba(34, 197, 94, 0)
+            }
+        }
+
+        /* ── Mobile nav ── */
+        #mobile-nav {
+            display: none
+        }
+
+        #mobile-nav.open {
+            display: flex
+        }
+
+        /* ── Particles canvas ── */
+        #pcanvas {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+            pointer-events: none
+        }
+
+        /* ── Hero quick stat card ── */
+        .qs-card {
+            background: rgba(255, 255, 255, .12);
+            border: 1px solid rgba(255, 255, 255, .2);
+            border-radius: 16px;
+            padding: 16px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            transition: background .25s
+        }
+
+        .qs-card:hover {
+            background: rgba(255, 255, 255, .2)
+        }
+
+        /* ── Org connector ── */
+        .org-connector {
+            width: 2px;
+            height: 40px;
+            background: linear-gradient(180deg, #16a34a, transparent);
+            margin: 0 auto
+        }
+
+        /* ── Chart wrap ── */
+        .chart-wrap {
+            position: relative;
+            min-height: 220px
+        }
+
+        /* ── Data source banner ── */
+        .ds-banner {
+            background: linear-gradient(90deg, #f0fdf4, #dcfce7, #f0fdf4);
+            border: 1px solid #bbf7d0;
+            border-radius: 14px;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: .85rem
+        }
+
+        /* ── Loader ── */
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #d1fae5;
+            border-top-color: #16a34a;
+            border-radius: 50%;
+            animation: spin .8s linear infinite
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg)
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ══ NAVBAR ══════════════════════════════════════════════ -->
+    <nav class="fixed top-0 w-full z-50 nav-light">
+        <div class="max-w-7xl mx-auto px-5 lg:px-8">
+            <div class="flex justify-between h-[68px] items-center">
+                <a href="#beranda" class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl flex items-center justify-center text-base shadow-md"
+                        style="background:linear-gradient(135deg,#16a34a,#15803d)">
+                        <i class="fa-solid fa-leaf text-white"></i>
+                    </div>
+                    <div>
+                        <p class="font-extrabold text-base leading-none text-gray-900">Desa Tindaki</p>
+                        <p class="text-[10px] font-bold tracking-[.18em] uppercase" style="color:#16a34a">Desa Cantik
+                        </p>
+                    </div>
+                </a>
+                <div class="hidden md:flex items-center gap-9">
+                    <a href="#beranda" class="nav-link text-sm">Beranda</a>
+                    <a href="#organisasi" class="nav-link text-sm">Organisasi</a>
+                    <a href="#statistik" class="nav-link text-sm">Statistik</a>
+                    <a href="#statistik" class="btn-primary text-sm py-2.5 px-5" style="border-radius:99px">
+                        <i class="fa-solid fa-chart-line text-xs"></i>Lihat Data
+                    </a>
+                </div>
+                <button id="hamburger" class="md:hidden text-gray-500 p-2 rounded-xl hover:bg-green-50"><i
+                        class="fa-solid fa-bars text-lg"></i></button>
+            </div>
+            <div id="mobile-nav" class="flex-col gap-4 pb-5 md:hidden border-t border-green-100 pt-4">
+                <a href="#beranda" class="nav-link" onclick="closeMobileNav()">Beranda</a>
+                <a href="#organisasi" class="nav-link" onclick="closeMobileNav()">Organisasi</a>
+                <a href="#statistik" class="nav-link" onclick="closeMobileNav()">Statistik</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ══ HERO ════════════════════════════════════════════════ -->
+    <section id="beranda" class="hero-bg relative min-h-screen flex flex-col justify-center overflow-hidden pt-[68px]">
+        <canvas id="pcanvas"></canvas>
+        <div class="absolute inset-0 hero-grid z-[1] pointer-events-none"></div>
+        <!-- Glow blobs -->
+        <div class="absolute w-96 h-96 -top-20 -right-20 rounded-full opacity-20 pointer-events-none"
+            style="background:#22c55e;filter:blur(100px);animation:blobF 14s ease-in-out infinite"></div>
+        <div class="absolute w-72 h-72 bottom-10 -left-10 rounded-full opacity-15 pointer-events-none"
+            style="background:#4ade80;filter:blur(90px);animation:blobF 10s ease-in-out infinite;animation-delay:-5s">
+        </div>
+        <style>
+            @keyframes blobF {
+
+                0%,
+                100% {
+                    transform: scale(1) translate(0, 0)
+                }
+
+                50% {
+                    transform: scale(1.1) translate(20px, -30px)
+                }
+            }
+        </style>
+
+        <div class="relative z-[2] max-w-7xl mx-auto px-5 lg:px-8 py-28 text-center flex flex-col items-center">
+            <div class="badge-g mb-8 reveal"
+                style="background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.25);color:#bbf7d0">
+                <div class="status-dot"></div>
+                Portal Informasi &amp; Statistik Desa
+            </div>
+            <h1
+                class="text-hero font-black text-6xl md:text-8xl xl:text-[110px] tracking-tighter leading-none mb-5 reveal">
+                Desa Tindaki</h1>
+            <p class="font-semibold text-xl md:text-2xl mb-3 reveal" style="color:#bbf7d0;transition-delay:.1s">
+                Kecamatan Parigi Selatan &nbsp;&middot;&nbsp; Kabupaten Parigi Moutong
+            </p>
+            <p class="text-green-200/80 text-base md:text-lg max-w-2xl mx-auto mb-12 leading-relaxed reveal"
+                style="transition-delay:.2s">
+                Selamat datang di portal informasi dan statistik <strong class="text-green-100">Desa Tindaki</strong>.
+                Transparansi data untuk pembangunan desa yang lebih baik, cerdas, dan berkelanjutan.
+            </p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center items-center reveal"
+                style="transition-delay:.3s">
+                <a href="#statistik" class="btn-primary text-lg"><i class="fa-solid fa-chart-pie"></i>Jelajahi
+                    Statistik</a>
+                <a href="#organisasi" class="btn-outline text-lg"><i class="fa-solid fa-sitemap"></i>Struktur
+                    Organisasi</a>
+            </div>
+            <!-- Quick stats -->
+            <div id="hero-stats" class="mt-20 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl w-full reveal"
+                style="transition-delay:.4s">
+                <div class="qs-card">
+                    <p class="text-3xl font-black text-white counter" data-target="3579">0</p>
+                    <p class="text-green-300 text-xs font-semibold mt-1 uppercase tracking-wider">Total Jiwa</p>
+                </div>
+                <div class="qs-card">
+                    <p class="text-3xl font-black text-white counter" data-target="1203">0</p>
+                    <p class="text-green-300 text-xs font-semibold mt-1 uppercase tracking-wider">Keluarga (KK)</p>
+                </div>
+                <div class="qs-card">
+                    <p class="text-3xl font-black text-white counter" data-target="6">0</p>
+                    <p class="text-green-300 text-xs font-semibold mt-1 uppercase tracking-wider">Dusun</p>
+                </div>
+                <div class="qs-card">
+                    <p class="text-3xl font-black text-white counter" data-target="14">0</p>
+                    <p class="text-green-300 text-xs font-semibold mt-1 uppercase tracking-wider">Perangkat Desa</p>
+                </div>
+            </div>
+        </div>
+        <!-- Scroll indicator -->
+        <div
+            class="absolute bottom-8 left-1/2 -translate-x-1/2 z-[2] flex flex-col items-center gap-1 text-green-300 animate-bounce">
+            <span class="text-[10px] font-bold tracking-widest uppercase">Scroll</span>
+            <i class="fa-solid fa-chevron-down text-xs"></i>
+        </div>
+    </section>
+
+    <!-- ══ DATA SOURCE BANNER ══════════════════════════════════ -->
+    <div class="max-w-7xl mx-auto px-5 lg:px-8 py-5">
+        <div class="ds-banner">
+            <i class="fa-brands fa-google text-green-600 text-xl"></i>
+            <div>
+                <span class="font-bold text-green-900">Sumber Data:</span>
+                <span id="data-source-label" class="text-green-700 ml-1">Memuat data...</span>
+            </div>
+            <span id="data-spinner" class="spinner ml-auto"></span>
+        </div>
+    </div>
+
+    <!-- ══ ORGANISASI ══════════════════════════════════════════ -->
+    <section id="organisasi" class="py-24 section-alt">
+        <div class="max-w-7xl mx-auto px-5 lg:px-8">
+            <div class="text-center mb-16 reveal">
+                <div class="section-accent mx-auto"></div>
+                <h2 class="text-4xl md:text-5xl font-black text-gray-900 mb-3">Susunan <span
+                        style="color:#16a34a">Organisasi</span></h2>
+                <p class="text-gray-500 text-lg">Pemerintah Desa Tindaki &ndash; Periode Aktif</p>
+            </div>
+
+            <!-- Kepala Desa -->
+            <div id="org-kades" class="flex justify-center mb-6 reveal"></div>
+            <div class="org-connector"></div>
+
+            <!-- Sekdes -->
+            <div id="org-sekdes" class="flex justify-center my-4 reveal"></div>
+            <div class="org-connector"></div>
+
+            <!-- Staf grid -->
+            <div id="org-staf" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-4 mb-12 reveal"></div>
+
+            <div class="divider mb-12"></div>
+
+            <!-- Kepala Dusun -->
+            <div class="reveal">
+                <h3 class="text-center text-2xl font-black text-gray-800 mb-8">
+                    Kepala Dusun <span class="text-green-600 text-base font-semibold ml-2">(6 Wilayah)</span>
+                </h3>
+                <div id="org-kadus" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ══ STATISTIK ════════════════════════════════════════════ -->
+    <section id="statistik" class="py-24 section-main">
+        <div class="max-w-7xl mx-auto px-5 lg:px-8">
+            <div class="text-center mb-16 reveal">
+                <div class="section-accent mx-auto"></div>
+                <h2 class="text-4xl md:text-5xl font-black text-gray-900 mb-3">Dashboard <span
+                        style="color:#16a34a">Statistik</span></h2>
+                <p class="text-gray-500 text-lg max-w-xl mx-auto">Data terpadu profil Desa Tindaki secara transparan dan
+                    akurat</p>
+            </div>
+
+            <!-- A: Demografi -->
+            <div class="mb-16">
+                <div class="flex flex-wrap items-center gap-3 mb-6 reveal">
+                    <span class="w-1.5 h-8 rounded-full flex-shrink-0"
+                        style="background:linear-gradient(180deg,#22c55e,#15803d)"></span>
+                    <h3 class="text-2xl font-black text-gray-800">Demografi &amp; Keluarga</h3>
+                    <span class="badge-g text-[9px]"><i class="fa-solid fa-users"></i>Kategori A</span>
+                </div>
+                <div id="demografi-cards" class="grid grid-cols-2 md:grid-cols-4 gap-5 mb-6 reveal"></div>
+                <div class="card p-8 reveal">
+                    <h4 class="font-bold text-gray-700 text-lg mb-6 text-center">Distribusi Jenis Kelamin</h4>
+                    <div class="chart-wrap flex items-center justify-center"><canvas id="genderChart"
+                            style="max-height:260px"></canvas></div>
+                </div>
+            </div>
+
+            <!-- B & C -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-16">
+                <!-- B: Fasilitas -->
+                <div class="reveal">
+                    <div class="flex flex-wrap items-center gap-3 mb-5">
+                        <span class="w-1.5 h-8 rounded-full flex-shrink-0"
+                            style="background:linear-gradient(180deg,#6366f1,#4338ca)"></span>
+                        <h3 class="text-2xl font-black text-gray-800">Fasilitas Desa</h3>
+                        <span class="badge-g text-[9px]"
+                            style="background:rgba(99,102,241,.08);border-color:rgba(99,102,241,.2);color:#4338ca"><i
+                                class="fa-solid fa-building"></i>Kategori B</span>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="card p-6">
+                            <h4 class="font-bold text-gray-800 mb-4 flex items-center gap-3">
+                                <span class="icon-badge" style="background:#eef2ff;color:#4f46e5"><i
+                                        class="fa-solid fa-school text-sm"></i></span>
+                                Fasilitas Pendidikan
+                            </h4>
+                            <div id="fas-pend-list" class="space-y-2"></div>
+                        </div>
+                        <div class="card p-6">
+                            <h4 class="font-bold text-gray-800 mb-4 flex items-center gap-3">
+                                <span class="icon-badge" style="background:#fff1f2;color:#be123c"><i
+                                        class="fa-solid fa-notes-medical text-sm"></i></span>
+                                Fasilitas Kesehatan
+                            </h4>
+                            <div id="fas-kes-list" class="space-y-2"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- C: Pendidikan -->
+                <div class="reveal" style="transition-delay:.08s">
+                    <div class="flex flex-wrap items-center gap-3 mb-5">
+                        <span class="w-1.5 h-8 rounded-full flex-shrink-0"
+                            style="background:linear-gradient(180deg,#0ea5e9,#0284c7)"></span>
+                        <h3 class="text-2xl font-black text-gray-800">Tingkat Pendidikan</h3>
+                        <span class="badge-g text-[9px]"
+                            style="background:rgba(14,165,233,.08);border-color:rgba(14,165,233,.2);color:#0369a1"><i
+                                class="fa-solid fa-graduation-cap"></i>Usia 15–64 Thn</span>
+                    </div>
+                    <div class="card p-6">
+                        <div class="chart-wrap mb-5"><canvas id="eduChart" style="max-height:220px"></canvas></div>
+                        <div id="edu-bars" class="space-y-4"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- D: Bansos -->
+            <div class="mb-16">
+                <div class="flex flex-wrap items-center gap-3 mb-6 reveal">
+                    <span class="w-1.5 h-8 rounded-full flex-shrink-0"
+                        style="background:linear-gradient(180deg,#f97316,#c2410c)"></span>
+                    <h3 class="text-2xl font-black text-gray-800">Penerima Bantuan Sosial</h3>
+                    <span class="badge-g text-[9px]"
+                        style="background:rgba(249,115,22,.08);border-color:rgba(249,115,22,.2);color:#c2410c"><i
+                            class="fa-solid fa-hand-holding-dollar"></i>Kategori D</span>
+                </div>
+                <div id="bansos-cards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 reveal"></div>
+            </div>
+
+            <!-- E: Industri -->
+            <div>
+                <div class="flex flex-wrap items-center gap-3 mb-6 reveal">
+                    <span class="w-1.5 h-8 rounded-full flex-shrink-0"
+                        style="background:linear-gradient(180deg,#eab308,#a16207)"></span>
+                    <h3 class="text-2xl font-black text-gray-800">Industri Kecil &amp; Menengah</h3>
+                    <span class="badge-g text-[9px]"
+                        style="background:rgba(234,179,8,.08);border-color:rgba(234,179,8,.25);color:#a16207"><i
+                            class="fa-solid fa-industry"></i>Kategori E</span>
+                </div>
+                <div class="card p-8 reveal">
+                    <div id="industri-bars" class="space-y-6"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ══ FOOTER ════════════════════════════════════════════════ -->
+    <footer class="bg-gray-900 text-white">
+        <div class="max-w-7xl mx-auto px-5 lg:px-8 py-14">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-10 mb-10">
+                <div>
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-11 h-11 rounded-xl flex items-center justify-center"
+                            style="background:linear-gradient(135deg,#16a34a,#15803d)"><i
+                                class="fa-solid fa-leaf text-white text-lg"></i></div>
+                        <div>
+                            <p class="font-black text-xl leading-none">Desa Tindaki</p>
+                            <p class="text-[10px] font-bold tracking-[.2em] uppercase text-green-400">Desa Cantik</p>
+                        </div>
+                    </div>
+                    <p class="text-gray-400 text-sm leading-relaxed">Portal resmi informasi dan statistik untuk
+                        mendukung pembangunan desa yang transparan dan berkelanjutan.</p>
+                </div>
+                <div>
+                    <h5 class="font-bold mb-4 text-sm uppercase tracking-wider text-gray-300">Navigasi</h5>
+                    <div class="space-y-2.5">
+                        <a href="#beranda" class="block text-gray-400 hover:text-green-400 transition-colors text-sm"><i
+                                class="fa-solid fa-chevron-right text-xs mr-2 text-green-700"></i>Beranda</a>
+                        <a href="#organisasi"
+                            class="block text-gray-400 hover:text-green-400 transition-colors text-sm"><i
+                                class="fa-solid fa-chevron-right text-xs mr-2 text-green-700"></i>Susunan Organisasi</a>
+                        <a href="#statistik"
+                            class="block text-gray-400 hover:text-green-400 transition-colors text-sm"><i
+                                class="fa-solid fa-chevron-right text-xs mr-2 text-green-700"></i>Dashboard
+                            Statistik</a>
+                    </div>
+                </div>
+                <div>
+                    <h5 class="font-bold mb-4 text-sm uppercase tracking-wider text-gray-300">Informasi Desa</h5>
+                    <div class="space-y-3 text-sm">
+                        <div class="flex items-start gap-3"><i
+                                class="fa-solid fa-location-dot mt-0.5 text-green-600 w-4 flex-shrink-0"></i><span
+                                class="text-gray-400">Kec. Parigi Selatan, Kab. Parigi Moutong, Sulawesi Tengah</span>
+                        </div>
+                        <div class="flex items-center gap-3"><i
+                                class="fa-solid fa-users text-green-600 w-4 flex-shrink-0"></i><span
+                                class="text-gray-400">3.579 Jiwa &middot; 1.203 KK &middot; 6 Dusun</span></div>
+                    </div>
+                </div>
+            </div>
+            <div style="height:1px;background:linear-gradient(90deg,transparent,rgba(74,222,138,.2),transparent)"
+                class="mb-6"></div>
+            <p class="text-center text-gray-500 text-sm">&copy; 2026 Pemerintah Desa Tindaki &nbsp;&middot;&nbsp; Desa
+                Cantik (Desa Cinta Statistik)</p>
+        </div>
+    </footer>
+
+    <!-- ══ SCRIPTS ══════════════════════════════════════════════ -->
+    <script>
+        /* ── Particles ── */
+        (function () {
+            const c = document.getElementById('pcanvas'), ctx = c.getContext('2d');
+            let W, H, pts;
+            function resize() { W = c.width = c.offsetWidth; H = c.height = c.offsetHeight }
+            window.addEventListener('resize', resize); resize();
+            function P() { this.x = Math.random() * W; this.y = Math.random() * H; this.r = Math.random() * 1.2 + .4; this.vx = (Math.random() - .5) * .25; this.vy = (Math.random() - .5) * .25; this.a = Math.random() * .3 + .07 }
+            P.prototype.u = function () { this.x += this.vx; this.y += this.vy; if (this.x < 0 || this.x > W) this.vx *= -1; if (this.y < 0 || this.y > H) this.vy *= -1 };
+            pts = Array.from({ length: 80 }, () => new P());
+            function draw() {
+                ctx.clearRect(0, 0, W, H);
+                pts.forEach(p => { p.u(); ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fillStyle = 'rgba(134,239,172,' + p.a + ')'; ctx.fill() });
+                for (let i = 0; i < pts.length; i++)for (let j = i + 1; j < pts.length; j++) {
+                    const dx = pts[i].x - pts[j].x, dy = pts[i].y - pts[j].y, d = Math.sqrt(dx * dx + dy * dy);
+                    if (d < 110) { ctx.beginPath(); ctx.strokeStyle = 'rgba(134,239,172,' + (0.05 * (1 - d / 110)) + ')'; ctx.lineWidth = .5; ctx.moveTo(pts[i].x, pts[i].y); ctx.lineTo(pts[j].x, pts[j].y); ctx.stroke(); }
+                }
+                requestAnimationFrame(draw);
+            }
+            draw();
+        })();
+
+        /* ── Mobile nav ── */
+        document.getElementById('hamburger').addEventListener('click', function () { document.getElementById('mobile-nav').classList.toggle('open'); });
+        function closeMobileNav() { document.getElementById('mobile-nav').classList.remove('open'); }
+
+        /* ── Reveal ── */
+        const revEls = document.querySelectorAll('.reveal');
+        const ro = new IntersectionObserver(function (entries) { entries.forEach(function (e, i) { if (e.isIntersecting) { setTimeout(function () { e.target.classList.add('visible'); }, i * 55); ro.unobserve(e.target); } }); }, { threshold: .08 });
+        revEls.forEach(function (el) { ro.observe(el); });
+
+        /* ── Counter ── */
+        function animCounter(el) {
+            const t = parseInt(el.dataset.target, 10), dur = 1600, start = performance.now();
+            function step(now) { const p = Math.min((now - start) / dur, 1), e = 1 - Math.pow(1 - p, 3); el.textContent = Math.floor(e * t).toLocaleString('id-ID'); if (p < 1) requestAnimationFrame(step); else el.textContent = t.toLocaleString('id-ID'); }
+            requestAnimationFrame(step);
+        }
+        const co = new IntersectionObserver(function (entries) { entries.forEach(function (e) { if (e.isIntersecting) { animCounter(e.target); co.unobserve(e.target); } }); }, { threshold: .4 });
+        document.querySelectorAll('.counter').forEach(function (el) { co.observe(el); });
+
+        /* ── Prog bars ── */
+        function activateProgBars() {
+            const po = new IntersectionObserver(function (entries) { entries.forEach(function (e) { if (e.isIntersecting) { e.target.style.width = e.target.dataset.width + '%'; po.unobserve(e.target); } }); }, { threshold: .15 });
+            document.querySelectorAll('.prog-fill').forEach(function (el) { po.observe(el); });
+        }
+
+        /* ── Icon map ── */
+        const ICONS = {
+            "Kaur Perencanaan": { ic: "fa-list-check", bg: "#f0fdf4", cl: "#16a34a" },
+            "Kaur Keuangan": { ic: "fa-coins", bg: "#fefce8", cl: "#ca8a04" },
+            "Kaur Umum & TU": { ic: "fa-folder-open", bg: "#f5f3ff", cl: "#7c3aed" },
+            "Kasi Pemerintahan": { ic: "fa-building-columns", bg: "#f0fdfa", cl: "#0d9488" },
+            "Kasi Kesejahteraan": { ic: "fa-hand-holding-heart", bg: "#fff7ed", cl: "#ea580c" },
+            "Kasi Pelayanan": { ic: "fa-users", bg: "#fdf2f8", cl: "#db2777" },
+        };
+        const BANSOS_ICONS = ["fa-heart-pulse", "fa-building", "fa-map", "fa-basket-shopping", "fa-people-roof", "fa-money-bill-wave"];
+        const INDUSTRI_ICONS = ["fa-burger", "fa-couch", "fa-trowel-bricks", "fa-utensils", "fa-tractor"];
+
+        /* ── Render helpers ── */
+        function renderOrgKades(person) {
+            document.getElementById('org-kades').innerHTML = `
+    <div class="card p-8 text-center w-72 relative" style="border-color:#bbf7d0">
+      <div class="absolute -top-5 left-1/2 -translate-x-1/2 badge-g text-[10px]">Kepala Desa</div>
+      <div class="pulse-ring w-20 h-20 mx-auto mb-5 rounded-full flex items-center justify-center text-4xl" style="background:linear-gradient(135deg,#16a34a,#15803d)">
+        <i class="fa-solid fa-user-tie text-white"></i>
+      </div>
+      <h3 class="text-xl font-black text-gray-900">${person.nama}</h3>
+      <p class="text-sm font-medium mt-1 text-green-600">${person.jabatan}</p>
+    </div>`;
+        }
+
+        function renderOrgSekdes(person) {
+            document.getElementById('org-sekdes').innerHTML = `
+    <div class="card p-6 text-center w-60 card-stat blue">
+      <div class="w-14 h-14 mx-auto rounded-2xl flex items-center justify-center text-2xl mb-4" style="background:#dbeafe;color:#1d4ed8">
+        <i class="fa-solid fa-user"></i>
+      </div>
+      <h3 class="text-lg font-black text-gray-900">${person.nama}</h3>
+      <p class="text-xs font-bold mt-1 uppercase tracking-wider text-blue-600">${person.jabatan}</p>
+    </div>`;
+        }
+
+        function renderOrgStaf(staf) {
+            const cont = document.getElementById('org-staf');
+            cont.innerHTML = '';
+            staf.forEach(function (p) {
+                const ico = ICONS[p.jabatan] || { ic: "fa-circle-user", bg: "#f9fafb", cl: "#6b7280" };
+                cont.innerHTML += `
+      <div class="card p-5 flex items-center gap-4 group cursor-default">
+        <div class="icon-badge" style="background:${ico.bg};color:${ico.cl}"><i class="fa-solid ${ico.ic} text-sm"></i></div>
+        <div>
+          <p class="text-[10px] font-bold uppercase tracking-widest mb-0.5" style="color:${ico.cl}opacity:.7">${p.jabatan}</p>
+          <h4 class="font-extrabold text-gray-900 text-base leading-tight">${p.nama}</h4>
+        </div>
+      </div>`;
+            });
+        }
+
+        function renderOrgKadus(kadus) {
+            const cont = document.getElementById('org-kadus');
+            cont.innerHTML = '';
+            kadus.forEach(function (p, i) {
+                const num = ["I", "II", "III", "IV", "V", "VI"][i] || String(i + 1);
+                cont.innerHTML += `
+      <div class="card p-4 text-center group cursor-default">
+        <div class="w-10 h-10 mx-auto rounded-full flex items-center justify-center font-black text-xs mb-3 transition-transform group-hover:scale-110 text-white" style="background:linear-gradient(135deg,#16a34a,#15803d)">${num}</div>
+        <p class="font-bold text-gray-800 text-xs leading-tight">${p.nama}</p>
+        <p class="text-[10px] text-gray-400 mt-0.5">${p.jabatan}</p>
+      </div>`;
+            });
+        }
+
+        function renderDemografi(data) {
+            const icons = {
+                "Total Penduduk": { ic: "fa-users", bg: "#f0fdf4", cl: "#16a34a", cls: "green" },
+                "Penduduk Laki-laki": { ic: "fa-person", bg: "#dbeafe", cl: "#1d4ed8", cls: "blue" },
+                "Penduduk Perempuan": { ic: "fa-person-dress", bg: "#fce7f3", cl: "#be185d", cls: "pink" },
+                "Jumlah Kepala Keluarga": { ic: "fa-house-chimney", bg: "#fef9c3", cl: "#a16207", cls: "amber" },
+                "KK Sektor Pertanian": { ic: "fa-tractor", bg: "#fff7ed", cl: "#c2410c", cls: "orange" },
+            };
+            const cont = document.getElementById('demografi-cards');
+            cont.innerHTML = '';
+            data.forEach(function (d, i) {
+                const ico = icons[d.kategori] || { ic: "fa-chart-bar", bg: "#f9fafb", cl: "#374151", cls: "green" };
+                const col = i === 0 ? "col-span-2 md:col-span-1" : "";
+                cont.innerHTML += `
+      <div class="card card-stat ${ico.cls} p-6 ${col}">
+        <div class="icon-badge mb-4" style="background:${ico.bg};color:${ico.cl}"><i class="fa-solid ${ico.ic} text-sm"></i></div>
+        <p class="text-3xl font-black text-gray-900 counter" data-target="${d.jumlah}">0</p>
+        <p class="text-gray-500 text-sm font-semibold mt-1">${d.kategori}</p>
+        <p class="text-xs font-bold mt-0.5" style="color:${ico.cl}">${d.satuan}</p>
+      </div>`;
+            });
+            // Re-observe counters
+            cont.querySelectorAll('.counter').forEach(function (el) { co.observe(el); });
+        }
+
+        function renderFasPend(data) {
+            const cont = document.getElementById('fas-pend-list');
+            cont.innerHTML = '';
+            data.forEach(function (d) {
+                cont.innerHTML += `
+      <div class="list-row">
+        <span class="text-gray-700 font-medium text-sm">${d.jenis}</span>
+        <span class="font-black text-white text-sm px-4 py-1 rounded-full" style="background:#4f46e5">${d.jumlah}</span>
+      </div>`;
+            });
+        }
+
+        function renderFasKes(data) {
+            const cont = document.getElementById('fas-kes-list');
+            cont.innerHTML = '';
+            data.forEach(function (d) {
+                cont.innerHTML += `
+      <div class="list-row">
+        <span class="text-gray-700 font-medium text-sm">${d.jenis}</span>
+        <span class="font-black text-white text-sm px-4 py-1 rounded-full" style="background:#be123c">${d.jumlah}</span>
+      </div>`;
+            });
+        }
+
+        function renderEduBars(data) {
+            const colors = ["#6b7280", "#0ea5e9", "#3b82f6", "#6366f1", "#8b5cf6"];
+            const cont = document.getElementById('edu-bars');
+            cont.innerHTML = '';
+            const max = Math.max(...data.map(function (d) { return d.jumlah }), 1);
+            data.forEach(function (d, i) {
+                const pct = Math.round(d.jumlah / max * 100);
+                cont.innerHTML += `
+      <div>
+        <div class="flex justify-between mb-1.5">
+          <span class="text-gray-600 text-sm font-semibold">${d.jenjang}</span>
+          <span class="font-black text-sm" style="color:${colors[i] || '#374151'}">${d.jumlah.toLocaleString('id-ID')}</span>
+        </div>
+        <div class="prog-bar"><div class="prog-fill" data-width="${pct}" style="background:${colors[i] || '#374151'}"></div></div>
+      </div>`;
+            });
+            activateProgBars();
+        }
+
+        function renderBansosCards(data) {
+            const max = Math.max(...data.map(function (d) { return d.jumlah }), 1);
+            const cont = document.getElementById('bansos-cards');
+            cont.innerHTML = '';
+            data.forEach(function (d, i) {
+                const pct = Math.round(d.jumlah / max * 100);
+                const ic = BANSOS_ICONS[i % BANSOS_ICONS.length];
+                cont.innerHTML += `
+      <div class="card card-stat orange p-6 group cursor-default">
+        <div class="flex justify-between items-start mb-4">
+          <div class="icon-badge" style="background:#fff7ed;color:#ea580c"><i class="fa-solid ${ic} text-sm"></i></div>
+          <span class="text-2xl font-black text-gray-900 counter" data-target="${d.jumlah}">0</span>
+        </div>
+        <h4 class="font-bold text-gray-700 text-sm mb-3">${d.program}</h4>
+        <div class="prog-bar"><div class="prog-fill" data-width="${pct}" style="background:linear-gradient(90deg,#f97316,#fbbf24)"></div></div>
+      </div>`;
+            });
+            cont.querySelectorAll('.counter').forEach(function (el) { co.observe(el); });
+            activateProgBars();
+        }
+
+        function renderIndustriBar(data) {
+            const max = Math.max(...data.map(function (d) { return d.jumlah }), 1);
+            const cont = document.getElementById('industri-bars');
+            cont.innerHTML = '';
+            data.forEach(function (d, i) {
+                const pct = Math.round(d.jumlah / max * 100);
+                const ic = INDUSTRI_ICONS[i % INDUSTRI_ICONS.length];
+                cont.innerHTML += `
+      <div class="flex items-center gap-5 group cursor-default">
+        <div class="icon-badge flex-shrink-0" style="background:#fefce8;color:#ca8a04"><i class="fa-solid ${ic}"></i></div>
+        <div class="flex-1">
+          <div class="flex justify-between mb-2">
+            <span class="text-gray-700 font-bold">${d.jenis}</span>
+            <span class="font-black text-lg" style="color:#ca8a04">${d.jumlah} <span class="text-xs text-gray-400 font-semibold">Unit</span></span>
+          </div>
+          <div class="prog-bar"><div class="prog-fill" data-width="${pct}" style="background:linear-gradient(90deg,#eab308,#fde68a)"></div></div>
+        </div>
+      </div>`;
+            });
+            activateProgBars();
+        }
+
+        /* ── Charts ── */
+        let genderChart = null, eduChart = null;
+
+        function renderGenderChart(data) {
+            const laki = (data.find(function (d) { return d.kategori === "Penduduk Laki-laki"; }) || {}).jumlah || 0;
+            const perempuan = (data.find(function (d) { return d.kategori === "Penduduk Perempuan"; }) || {}).jumlah || 0;
+            if (genderChart) genderChart.destroy();
+            genderChart = new Chart(document.getElementById('genderChart').getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Laki-laki (' + laki.toLocaleString('id-ID') + ')', 'Perempuan (' + perempuan.toLocaleString('id-ID') + ')'],
+                    datasets: [{ data: [laki, perempuan], backgroundColor: ['#3b82f6', '#ec4899'], borderColor: ['#bfdbfe', '#fbcfe8'], borderWidth: 2, hoverOffset: 8 }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false, cutout: '72%', plugins: {
+                        legend: { position: 'bottom', labels: { padding: 22, usePointStyle: true, pointStyle: 'circle', font: { size: 13, weight: '600' } } },
+                        tooltip: { backgroundColor: '#1e293b', padding: 12, callbacks: { label: function (ctx) { return ' ' + ctx.label + ': ' + ctx.parsed.toLocaleString('id-ID') + ' jiwa'; } } }
+                    }, animation: { animateScale: true, duration: 1200 }
+                }
+            });
+        }
+
+        function renderEduChart(data) {
+            const labels = data.map(function (d) { return d.jenjang.replace('Tamat ', '').replace(' / Sederajat', ''); });
+            const vals = data.map(function (d) { return d.jumlah; });
+            const bgs = ['#9ca3af', '#38bdf8', '#3b82f6', '#6366f1', '#8b5cf6'];
+            if (eduChart) eduChart.destroy();
+            eduChart = new Chart(document.getElementById('eduChart').getContext('2d'), {
+                type: 'bar',
+                data: { labels: labels, datasets: [{ data: vals, backgroundColor: bgs.slice(0, vals.length), borderColor: bgs.slice(0, vals.length), borderWidth: 1.5, borderRadius: 10, borderSkipped: false }] },
+                options: {
+                    responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { backgroundColor: '#1e293b', padding: 12, callbacks: { label: function (ctx) { return ' ' + ctx.parsed.y.toLocaleString('id-ID') + ' orang'; } } } },
+                    scales: {
+                        x: { grid: { display: false }, border: { display: false }, ticks: { font: { weight: '700', size: 11 } } },
+                        y: { beginAtZero: true, grid: { color: '#f1f5f9' }, border: { display: false }, ticks: { font: { weight: '600', size: 10 } } }
+                    }, animation: { duration: 1200, easing: 'easeOutQuart' }
+                }
+            });
+        }
+
+        /* ── Init ── */
+        Chart.defaults.font.family = "'Outfit',sans-serif";
+        Chart.defaults.color = '#64748b';
+
+        async function init() {
+            const label = document.getElementById('data-source-label');
+            const spinner = document.getElementById('data-spinner');
+
+            // Fetch semua data (otomatis pakai GSHEET_ID + nama tab)
+            const [demografi, fasPend, fasKes, pendidikan, bansos, industri, org] = await Promise.all([
+                fetchSheet('demografi', 'demografi'),
+                fetchSheet('fasPend', 'fasPend'),
+                fetchSheet('fasKes', 'fasKes'),
+                fetchSheet('pendidikan', 'pendidikan'),
+                fetchSheet('bansos', 'bansos'),
+                fetchSheet('industri', 'industri'),
+                fetchSheet('organisasi', 'organisasi'),
+            ]);
+
+            // Banner: tunjukkan sumber data
+            const useSheet = GSHEET_ID && GSHEET_ID.trim().length > 5;
+            label.textContent = useSheet
+                ? '\u2705 Google Spreadsheet (live) — ID: ' + GSHEET_ID.trim().slice(0, 12) + '...'
+                : '\u26a0\ufe0f Data lokal (hardcode) — isi GSHEET_ID untuk sinkronisasi Google Sheets otomatis';
+            spinner.style.display = 'none';
+
+            // ── Render Organisasi ──
+            const kades = org.find(function (o) { return o.kategori === "Pimpinan"; });
+            const sekdes = org.find(function (o) { return o.kategori === "Sekretariat"; });
+            const staf = org.filter(function (o) { return o.kategori === "Kaur" || o.kategori === "Kasi"; });
+            const kadus = org.filter(function (o) { return o.kategori === "Kadus"; });
+            if (kades) renderOrgKades(kades);
+            if (sekdes) renderOrgSekdes(sekdes);
+            renderOrgStaf(staf);
+            renderOrgKadus(kadus);
+
+            // ── Render Statistik ──
+            renderDemografi(demografi);
+            renderGenderChart(demografi);
+            renderFasPend(fasPend);
+            renderFasKes(fasKes);
+            renderEduBars(pendidikan);
+            renderEduChart(pendidikan);
+            renderBansosCards(bansos);
+            renderIndustriBar(industri);
+        }
+
+
+        init();
+    </script>
+</body>
+
+</html>
