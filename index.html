@@ -593,10 +593,180 @@
                 transform: rotate(360deg)
             }
         }
+
+        /* ── Modal poster popup ── */
+        .poster-overlay {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(2,6,23,0.55);
+            backdrop-filter: blur(6px) saturate(120%);
+            z-index: 2000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .28s ease;
+        }
+
+        .poster-overlay.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .poster-modal {
+            display: inline-block;
+            position: relative;
+            background: transparent;
+            box-shadow: none;
+            border-radius: 0;
+            padding: 0;
+            transform: translateY(8px) scale(.98);
+            opacity: 0;
+            transition: transform .22s cubic-bezier(.2,.9,.25,1), opacity .18s ease;
+            max-width: calc(100vw - 40px);
+            max-height: calc(100vh - 48px);
+        }
+
+        .poster-overlay.open .poster-modal {
+            transform: translateY(0) scale(1);
+            opacity: 1;
+        }
+
+        .poster-content {
+            padding: 0;
+            display: block;
+            color: #064e3b;
+        }
+
+        .poster-art {
+            display: block;
+            flex: none;
+            width: auto;
+            height: auto;
+            max-width: calc(100vw - 48px);
+            max-height: calc(100vh - 80px);
+            border-radius: 0;
+            background: transparent;
+            box-shadow: none;
+            overflow: hidden;
+        }
+
+        /* Reusable photo slot */
+        .poster-art img,
+        .photo-slot img {
+            /* Target size 1080x810 (4:3), but responsive to viewport */
+            width: 1080px;
+            height: 810px;
+            aspect-ratio: 4 / 3;
+            max-width: min(1080px, calc(100vw - 48px));
+            max-height: min(810px, calc(100vh - 80px));
+            object-fit: contain;
+            display: block;
+        }
+        }
+
+        .poster-copy {
+            flex: 1 1 auto;
+            padding-right: 8px;
+        }
+
+        .poster-copy h3 {
+            margin: 0 0 8px 0;
+            font-size: 20px;
+            line-height: 1.05;
+            letter-spacing: -0.01em;
+        }
+
+        .poster-copy p {
+            margin: 0 0 14px 0;
+            color: #064e3b;
+            opacity: .9;
+        }
+
+        .poster-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .poster-close {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            width: 44px;
+            height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255,255,255,0.96);
+            border: 0;
+            color: #064e3b;
+            font-size: 20px;
+            line-height: 1;
+            cursor: pointer;
+            padding: 0;
+            border-radius: 10px;
+            box-shadow: 0 8px 20px rgba(2,6,23,0.18);
+            z-index: 2100;
+            transition: transform .12s ease, box-shadow .12s ease;
+        }
+
+        .poster-close:hover { transform: translateY(-2px) scale(1.03); box-shadow: 0 12px 28px rgba(2,6,23,0.22); }
+
+        /* secondary/tombol 'Tutup' di dalam aksi */
+        .poster-close-ghost {
+            position: static !important;
+            width: auto;
+            height: auto;
+            padding: 8px 12px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.95);
+            border: 1px solid rgba(6,78,59,0.08);
+            box-shadow: 0 8px 18px rgba(2,6,23,0.06);
+            color: #064e3b;
+            font-weight: 700;
+            cursor: pointer;
+            margin-left: 6px;
+        }
+
+        .poster-close-ghost:hover { transform: translateY(-1px); }
+
+        .poster-cta {
+            background: linear-gradient(135deg,#16a34a,#15803d);
+            color: #fff;
+            padding: 10px 16px;
+            border-radius: 10px;
+            font-weight: 700;
+            box-shadow: 0 8px 20px rgba(22,163,74,.18);
+            border: none;
+            cursor: pointer;
+        }
     </style>
 </head>
 
 <body>
+
+    <!-- Modal poster popup (tampil sekali) -->
+    <div id="poster-overlay" class="poster-overlay" aria-hidden="true">
+        <div class="poster-modal" role="dialog" aria-modal="true" aria-labelledby="poster-title" aria-describedby="poster-desc">
+            <button class="poster-close" id="poster-close" aria-label="Tutup poster">&times;</button>
+            <div class="poster-content">
+                <div class="poster-art">
+                    <img id="poster-image" src="image.png" alt="Poster Desa Tindaki">
+                </div>
+                <div class="poster-copy">
+                    <h3 id="poster-title">Selamat Datang di Desa Tindaki</h3>
+                    <p id="poster-desc">Portal Informasi & Statistik — Transparansi data untuk pembangunan yang
+                        lebih baik. Jelajahi laporan, grafik, dan sumber data resmi desa.</p>
+                    <div class="poster-actions">
+                        <button class="poster-cta" id="poster-cta">Lihat Statistik</button>
+                        <button id="poster-close-2" class="poster-close poster-close-ghost" aria-hidden="true">Tutup</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- ══ NAVBAR ══════════════════════════════════════════════ -->
     <nav class="fixed top-0 w-full z-50 nav-light">
@@ -1224,6 +1394,34 @@
 
 
         init();
+    </script>
+    <script>
+        (function () {
+            const overlay = document.getElementById('poster-overlay');
+            const closeBtn = document.getElementById('poster-close');
+            const closeBtn2 = document.getElementById('poster-close-2');
+            const cta = document.getElementById('poster-cta');
+
+            function openPoster() {
+                overlay.classList.add('open');
+                overlay.setAttribute('aria-hidden', 'false');
+                document.body.style.overflow = 'hidden';
+            }
+            function closePoster() {
+                overlay.classList.remove('open');
+                overlay.setAttribute('aria-hidden', 'true');
+                document.body.style.overflow = '';
+            }
+
+            // Always show on every page load (small delay for smoother entrance)
+            setTimeout(openPoster, 300);
+
+            // Events
+            overlay.addEventListener('click', function (e) { if (e.target === overlay) closePoster(); });
+            [closeBtn, closeBtn2].forEach(b => b && b.addEventListener('click', function () { closePoster(); }));
+            document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') closePoster(); });
+            if (cta) cta.addEventListener('click', function () { closePoster(); window.location.hash = '#statistik'; });
+        })();
     </script>
 </body>
 
